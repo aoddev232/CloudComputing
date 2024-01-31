@@ -1,0 +1,79 @@
+version: '3'
+
+networks:
+  rabbitmq_go_net:
+    driver: bridge
+
+services:
+  student:
+    build:
+      context: ./Student
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - rabbitmq
+      - demonstrator_cc
+      - demonstrator_dm
+    networks:
+      - rabbitmq_go_net
+
+  demonstrator_dm:
+    build:
+      context: ./DemonstratorDM
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - rabbitmq
+      - teaching_assistant
+    networks:
+      - rabbitmq_go_net
+
+  demonstrator_cc:
+    build:
+      context: ./DemonstratorCC
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - rabbitmq
+      - teaching_assistant
+    networks:
+      - rabbitmq_go_net
+
+
+  teaching_assistant:
+    build:
+      context: ./TeachingAssistant
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - rabbitmq
+      - module_coordinator
+    networks:
+      - rabbitmq_go_net
+
+  module_coordinator:
+    build:
+      context: ./ModuleCoordinator
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - rabbitmq
+    networks:
+      - rabbitmq_go_net
+
+  rabbitmq:
+    image: "rabbitmq:3.13-rc-management"
+    container_name: rabbitmq
+    ports:
+      - "5672:5672" 
+      - "15672:15672" 
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      - rabbitmq_go_net
+    healthcheck:
+      test: rabbitmq-diagnostics check_port_connectivity
+      interval: 5s
+      timeout: 60s
+      retries: 30
